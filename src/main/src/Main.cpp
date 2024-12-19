@@ -1,7 +1,7 @@
 #include <QApplication>
 #include <QFontDatabase>
 
-#include "Mainwindow.h"
+#include "view/Mainwindow.h"
 
 #ifdef WIN32
 // clang-format off
