@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/font">
+        <file>WenQuanWeiMiHei.ttf</file>
+    </qresource>
+</RCC>
