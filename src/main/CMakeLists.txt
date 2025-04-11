@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 
 set(BIN_NAME ${PROJECT_NAME})
 
+set(RC_FILE ${CMAKE_BINARY_DIR}/app.rc)
+set(APP_ICON ${CMAKE_CURRENT_SOURCE_DIR}/resource/icons/favicon.ico)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resource/qt/etc/app.rc.in
+        ${RC_FILE} @ONLY ESCAPE_QUOTES)
+
 find_package(Python REQUIRED)
 
 file(GLOB_RECURSE SRC_FILES 
@@ -27,5 +32,5 @@ file(GLOB_RECURSE HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB_RECURSE UI "${CMAKE_CURRENT_SOURCE_DIR}/form/*.ui")
 file(GLOB_RECURSE RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resource/*.qrc")
 
-add_executable(${BIN_NAME} ${SOURCE} ${HEADER} ${UI} ${RESOURCE})
+add_executable(${BIN_NAME} ${SOURCE} ${HEADER} ${UI} ${RESOURCE} ${RC_FILE})
 target_link_libraries(${BIN_NAME} PUBLIC ${QT_LIBRARIES})

@@ -2,6 +2,7 @@
 #define  _MAINWINDOW_H__
 
 #include <QMainWindow>
+#include "binder/ValueBinder.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,6 +20,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    binder::ValueBinder<int> m_value_binder;
 
 };
 
