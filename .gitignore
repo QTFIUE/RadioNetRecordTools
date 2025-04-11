@@ -32,5 +32,6 @@
 *.out
 *.app
 
-build/
+.idea/
+*build*/
 .cache/
