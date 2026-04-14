@@ -1,0 +1,74 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # 推送标签时触发，例如 v1.0.0
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest # 建议先从 Windows 调通，因为 Qt 在 Windows 下部署较复杂
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.5.3' # 确认这是你需要的版本
+          arch: 'win64_msvc2019_64'
+
+      # --- 关键步骤：使用 CMake 而不是 ./configure ---
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Project
+        run: cmake --build build --config Release
+
+      # --- 自动化打包 (防止运行报错找不到 DLL) ---
+      - name: Package
+        shell: pwsh
+        run: |
+          mkdir dist
+          # 1. 将生成的 exe 复制到 dist 目录
+          # 注意：请确认你的可执行文件名，如果不是 RadioNetRecordTools.exe 请修改下面这一行
+          Copy-Item "build/Release/*.exe" -Destination "dist/"
+          
+          # 2. 获取 exe 的完整路径
+          $EXE_PATH = Get-ChildItem "dist/*.exe" | Select-Object -ExpandProperty FullName
+          
+          # 3. 使用 windeployqt 自动拷贝 Qt 依赖库
+          windeployqt --release --no-translations --compiler-runtime $EXE_PATH
+          
+          # 4. 压缩成 zip
+          Compress-Archive -Path dist/* -DestinationPath RadioNetRecordTools-Windows.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: RadioNetRecordTools-Windows.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: RadioNetRecordTools-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
