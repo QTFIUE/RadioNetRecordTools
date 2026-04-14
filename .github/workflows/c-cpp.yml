@@ -1,24 +1,15 @@
-name: Build and Release Qt6 Project
+name: Build and Release
 
 on:
   push:
     tags:
-      - 'v*' # 当推送以 v 开头的标签时触发，如 v1.0, v2.1.3
-  workflow_dispatch: # 允许手动触发
+      - 'v*' # 推送标签时触发，例如 v1.0.0
+  workflow_dispatch: # 允许手动点击运行
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            qt_arch: win64_msvc2019_64
-            artifact_name: Windows-x64
-          - os: ubuntu-latest
-            qt_arch: gcc_64
-            artifact_name: Linux-x64
+    name: Build
+    runs-on: windows-latest # 建议先从 Windows 调通，因为 Qt 在 Windows 下部署较复杂
 
     steps:
       - name: Checkout Code
@@ -29,69 +20,55 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.5.3' # 你可以根据需要修改 Qt 版本
-          arch: ${{ matrix.qt_arch }}
-          # modules: 'qtcharts qtserialport' # 如果你用了额外的模块，在这里列出
+          version: '6.5.3' # 确认这是你需要的版本
+          arch: 'win64_msvc2019_64'
 
-      - name: Install Dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libxcb-cursor0
-
+      # --- 关键步骤：使用 CMake 而不是 ./configure ---
       - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Project
-        run: |
-          cmake --build build --config Release
+        run: cmake --build build --config Release
 
-      # --- 打包步骤 (Windows) ---
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
+      # --- 自动化打包 (防止运行报错找不到 DLL) ---
+      - name: Package
+        shell: pwsh
         run: |
           mkdir dist
-          # 复制生成的 exe，假设你的目标名称是 RadioNetRecordTools
-          cp build/Release/RadioNetRecordTools.exe dist/
-          # 运行 windeployqt 自动补齐 DLL
-          windeployqt --release --no-translations --compiler-runtime dist/RadioNetRecordTools.exe
-          # 压缩成 zip
+          # 1. 将生成的 exe 复制到 dist 目录
+          # 注意：请确认你的可执行文件名，如果不是 RadioNetRecordTools.exe 请修改下面这一行
+          Copy-Item "build/Release/*.exe" -Destination "dist/"
+          
+          # 2. 获取 exe 的完整路径
+          $EXE_PATH = Get-ChildItem "dist/*.exe" | Select-Object -ExpandProperty FullName
+          
+          # 3. 使用 windeployqt 自动拷贝 Qt 依赖库
+          windeployqt --release --no-translations --compiler-runtime $EXE_PATH
+          
+          # 4. 压缩成 zip
           Compress-Archive -Path dist/* -DestinationPath RadioNetRecordTools-Windows.zip
 
-      # --- 打包步骤 (Linux) ---
-      - name: Package (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          mkdir dist
-          cp build/RadioNetRecordTools dist/
-          # Linux 通常建议打包成 AppImage 或简单的压缩包
-          tar -czvf RadioNetRecordTools-Linux.tar.gz -C dist .
-
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            *.zip
-            *.tar.gz
+          name: windows-binaries
+          path: RadioNetRecordTools-Windows.zip
 
   release:
-    name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') # 仅在推送 tag 时执行 release
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
-      - name: Download Artifacts
+      - name: Download Artifact
         uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            Windows-x64/*.zip
-            Linux-x64/*.tar.gz
+          files: RadioNetRecordTools-Windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
