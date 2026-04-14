@@ -22,7 +22,6 @@
 
 #include "./ui_Mainwindow.h"
 
-
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow), totalCheckins(0) {
     ui->setupUi(this);
 
@@ -483,7 +482,7 @@ void MainWindow::onExportPNG() {
     QString defaultName = QDateTime::currentDateTime().toString("yyyy-MM-dd ") + leNetName->text() + ".png";
     // 替换掉文件名中可能不合法的字符（如果名称里有斜杠等字符，文件系统会拒绝）
     defaultName.replace("/", "-");
-    
+
     QString fileName = QFileDialog::getSaveFileName(this, "Export Dashboard", defaultName, "PNG Images (*.png)");
     if (fileName.isEmpty())
         return;
@@ -555,7 +554,10 @@ void MainWindow::onExportPNG() {
 }
 
 void MainWindow::onExportCSV() {
-    QString fileName = QFileDialog::getSaveFileName(this, "Export CSV", "NetRecord.csv", "CSV Files (*.csv)");
+    QString defaultName = QDateTime::currentDateTime().toString("yyyy-MM-dd ") + leNetName->text() + ".csv";
+    defaultName.replace("/", "-");
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Export CSV", defaultName, "CSV Files (*.csv)");
     if (fileName.isEmpty())
         return;
 
