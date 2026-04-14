@@ -13,7 +13,6 @@ LONG ApplicationCrashHandler(EXCEPTION_POINTERS* pException);
 
 #endif
 
-
 int main(int argc, char* argv[]) {
 #ifdef WIN32
     SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)ApplicationCrashHandler);
@@ -34,17 +33,17 @@ int main(int argc, char* argv[]) {
     return a.exec();
 }
 
-
 // Unhandled Exception的回调函数
 #ifdef WIN32
 
-#include <string>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
+
 
 // 创建Dump文件
 void CreateDumpFile(LPCWSTR lpstrDumpFilePathName, EXCEPTION_POINTERS* pException) {
-    CreateDirectory("./dump", NULL);
+    CreateDirectoryW(L"./dump", NULL);
     HANDLE hDumpFile =
         CreateFileW(lpstrDumpFilePathName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     // Dump信息
