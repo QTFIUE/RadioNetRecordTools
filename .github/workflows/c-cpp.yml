@@ -1,15 +1,18 @@
-name: Build and Release
+name: Build and Release Qt6 Project
 
 on:
   push:
     tags:
-      - 'v*' # 推送标签时触发，例如 v1.0.0
-  workflow_dispatch: # 允许手动点击运行
+      - 'v*' # 当你推送 v1.0.0 这样的标签时触发
+  workflow_dispatch: # 允许你手动在 Actions 页面点击运行
 
 jobs:
   build:
-    name: Build
-    runs-on: windows-latest # 建议先从 Windows 调通，因为 Qt 在 Windows 下部署较复杂
+    name: Build Windows Version
+    runs-on: windows-latest
+    
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -20,55 +23,69 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.5.3' # 确认这是你需要的版本
+          version: '6.5.3' # 你可以根据需要改为 6.2.4, 6.7.0 等
           arch: 'win64_msvc2019_64'
 
-      # --- 关键步骤：使用 CMake 而不是 ./configure ---
+      # 1. 配置项目 (针对 CMake 项目)
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
+      # 2. 编译项目
       - name: Build Project
         run: cmake --build build --config Release
 
-      # --- 自动化打包 (防止运行报错找不到 DLL) ---
-      - name: Package
+      # 3. 智能打包 (解决路径找不到的问题)
+      - name: Package Windows
         shell: pwsh
         run: |
           mkdir dist
-          # 1. 将生成的 exe 复制到 dist 目录
-          # 注意：请确认你的可执行文件名，如果不是 RadioNetRecordTools.exe 请修改下面这一行
-          Copy-Item "build/Release/*.exe" -Destination "dist/"
           
-          # 2. 获取 exe 的完整路径
-          $EXE_PATH = Get-ChildItem "dist/*.exe" | Select-Object -ExpandProperty FullName
+          # 自动寻找编译生成的 exe 文件 (无论在哪个子目录，只要是 Release 文件夹下的)
+          # 注意：它会寻找你在 CMakeLists.txt 里定义的那个可执行文件
+          $EXE_PATH = Get-ChildItem -Path "build" -Filter "*.exe" -Recurse | Where-Object { $_.FullName -like "*Release*" -and $_.Name -notlike "*test*" -and $_.Name -notlike "*gtest*" } | Select-Object -First 1 -ExpandProperty FullName
           
-          # 3. 使用 windeployqt 自动拷贝 Qt 依赖库
-          windeployqt --release --no-translations --compiler-runtime $EXE_PATH
+          if (-not $EXE_PATH) {
+            Write-Error "未能在 build 目录下找到生成的可执行文件！"
+            exit 1
+          }
           
-          # 4. 压缩成 zip
-          Compress-Archive -Path dist/* -DestinationPath RadioNetRecordTools-Windows.zip
+          Write-Host "找到目标文件: $EXE_PATH"
+          $EXE_NAME = Split-Path -Leaf $EXE_PATH
+          
+          # 复制主程序到 dist 目录
+          Copy-Item $EXE_PATH -Destination "dist/"
+          
+          # 运行 windeployqt 自动补全所有需要的 Qt DLL 依赖
+          windeployqt --release --no-translations --compiler-runtime "dist/$EXE_NAME"
+          
+          # 压缩成 zip 包
+          Compress-Archive -Path dist/* -DestinationPath "RadioNetRecordTools-Windows.zip"
+          Write-Host "打包完成: RadioNetRecordTools-Windows.zip"
 
+      # 4. 上传构建好的文件到 GitHub Actions 产物中
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-binaries
+          name: windows-binary
           path: RadioNetRecordTools-Windows.zip
 
   release:
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
-      - name: Download Artifact
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: windows-binaries
+          name: windows-binary
 
-      - name: Create Release
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: RadioNetRecordTools-Windows.zip
+          # body: "自动生成的 Release 版本" # 可以自定义发布日志
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
