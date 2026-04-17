@@ -147,7 +147,7 @@ void MainWindow::setupUI() {
     tableWidget->setHorizontalHeaderLabels(
         { "Time", "Callsign", "RST", "QTH", "Power", "Rig", "Antenna", "Topic", "Remarks" });
     tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    tableWidget->setAlternatingRowColors(true);
+    tableWidget->setAlternatingRowColors(false);
     tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     mainLayout->addWidget(tableWidget);
 
@@ -176,6 +176,7 @@ void MainWindow::setupUI() {
     cbQTH->view()->installEventFilter(this);
     cbRig->view()->installEventFilter(this);
     cbAntenna->view()->installEventFilter(this);
+	
 }
 
 // 拦截按键事件（允许下拉列表中按 Delete 键删除条目）
@@ -218,7 +219,7 @@ void MainWindow::onCallsignTextChanged(const QString& text) {
 
 // 智能自动补全逻辑
 void MainWindow::onCallsignEditingFinished() {
-    QString call = leCallsign->text().trimmed();
+    QString call = leCallsign->text().trimmed().toUpper();
     if (call.isEmpty())
         return;
 
@@ -238,7 +239,7 @@ void MainWindow::onCallsignEditingFinished() {
 
 // 提交记录的核心功能
 void MainWindow::onSubmitRecord() {
-    QString call = leCallsign->text().trimmed();
+    QString call = leCallsign->text().trimmed().toUpper();
     if (call.isEmpty())
         return;
 
@@ -311,7 +312,7 @@ void MainWindow::onSubmitRecord() {
 
 // 插入中途切换的主控记录
 void MainWindow::onAddControlRecord() {
-    QString call = leCallsign->text().trimmed();
+    QString call = leCallsign->text().trimmed().toUpper();
     if (call.isEmpty()) {
         QMessageBox::warning(this, QString::fromUtf8("提示"), QString::fromUtf8("请先在呼号框输入新的主控呼号"));
         return;
