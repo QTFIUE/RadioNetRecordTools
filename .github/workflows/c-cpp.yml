@@ -1,4 +1,4 @@
-name: Build and Release Qt6 Project
+﻿name: Build and Release Qt6 Project
 
 on:
   push:
@@ -40,9 +40,9 @@ jobs:
         run: |
           mkdir dist
           
-          # 自动寻找编译生成的 exe 文件 (无论在哪个子目录，只要是 Release 文件夹下的)
+          # 自动寻找编译生成的 exe 文件 (无论在哪个子目录)
           # 注意：它会寻找你在 CMakeLists.txt 里定义的那个可执行文件
-          $EXE_PATH = Get-ChildItem -Path "build" -Filter "*.exe" -Recurse | Where-Object { $_.FullName -like "*Release*" -and $_.Name -notlike "*test*" -and $_.Name -notlike "*gtest*" } | Select-Object -First 1 -ExpandProperty FullName
+          $EXE_PATH = Get-ChildItem -Path "build" -Filter "RadioNetRecordTools.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
           
           if (-not $EXE_PATH) {
             Write-Error "未能在 build 目录下找到生成的可执行文件！"
@@ -89,3 +89,6 @@ jobs:
           # body: "自动生成的 Release 版本" # 可以自定义发布日志
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+
