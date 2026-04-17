@@ -3,6 +3,7 @@
 #include <QAbstractItemView>
 #include <QAction>
 #include <QApplication>
+#include <QCompleter>
 #include <QDateTime>
 #include <QFileDialog>
 #include <QGridLayout>
@@ -17,10 +18,12 @@
 #include <QScreen>
 #include <QSet>
 #include <QShortcut>
+#include <QStringListModel>
 #include <QTextStream>
 #include <QVBoxLayout>
 
 #include "./ui_Mainwindow.h"
+
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow), totalCheckins(0) {
     ui->setupUi(this);
@@ -28,6 +31,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     setupUI();
     loadStyleSheet();
     loadHistoryDatabase();
+    updateCompleters();
 
     // 初始化 RST 默认值
     leRST->setText("59");
@@ -84,11 +88,20 @@ void MainWindow::setupUI() {
     leRST = new QLineEdit();
     cbQTH = new QComboBox();
     cbQTH->setEditable(true);
+    if (cbQTH->completer()) {
+        cbQTH->completer()->setFilterMode(Qt::MatchContains);
+    }
     lePower = new QLineEdit();
     cbRig = new QComboBox();
     cbRig->setEditable(true);
+    if (cbRig->completer()) {
+        cbRig->completer()->setFilterMode(Qt::MatchContains);
+    }
     cbAntenna = new QComboBox();
     cbAntenna->setEditable(true);
+    if (cbAntenna->completer()) {
+        cbAntenna->completer()->setFilterMode(Qt::MatchContains);
+    }
     leTopic = new QLineEdit();
     leRemarks = new QLineEdit();
 
@@ -424,6 +437,7 @@ void MainWindow::loadHistoryDatabase() {
     cbQTH->setCurrentText("");
     cbRig->setCurrentText("");
     cbAntenna->setCurrentText("");
+    updateCompleters();
 }
 
 // 保存历史库到 JSON
@@ -441,6 +455,30 @@ void MainWindow::saveHistoryDatabase() {
     QFile file("history_database.json");
     if (file.open(QIODevice::WriteOnly)) {
         file.write(doc.toJson());
+    }
+    updateCompleters();
+}
+
+void MainWindow::updateCompleters() {
+    QStringList calls = historyDb.keys();
+
+    // 更新 Callsign 的补全器
+    if (!leCallsign->completer()) {
+        QCompleter* comp = new QCompleter(calls, this);
+        comp->setCaseSensitivity(Qt::CaseInsensitive);
+        comp->setFilterMode(Qt::MatchContains);
+        leCallsign->setCompleter(comp);
+    } else {
+        auto model = qobject_cast<QStringListModel*>(leCallsign->completer()->model());
+        if (model) {
+            model->setStringList(calls);
+        } else {
+            leCallsign->completer()->deleteLater();
+            QCompleter* comp = new QCompleter(calls, this);
+            comp->setCaseSensitivity(Qt::CaseInsensitive);
+            comp->setFilterMode(Qt::MatchContains);
+            leCallsign->setCompleter(comp);
+        }
     }
 }
 

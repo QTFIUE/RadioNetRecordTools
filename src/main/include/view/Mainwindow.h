@@ -67,6 +67,7 @@ private:
     void loadHistoryDatabase();
     void saveHistoryDatabase();
     void autoSaveLog(const LogEntry& entry);
+    void updateCompleters();
     void updateStatusBar();
 
     Ui::MainWindow* ui;
