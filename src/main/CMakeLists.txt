@@ -32,5 +32,5 @@ file(GLOB_RECURSE HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB_RECURSE UI "${CMAKE_CURRENT_SOURCE_DIR}/form/*.ui")
 file(GLOB_RECURSE RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resource/*.qrc")
 
-add_executable(${BIN_NAME} ${SOURCE} ${HEADER} ${UI} ${RESOURCE} ${RC_FILE})
+add_executable(${BIN_NAME} WIN32 ${SOURCE} ${HEADER} ${UI} ${RESOURCE} ${RC_FILE})
 target_link_libraries(${BIN_NAME} PUBLIC ${QT_LIBRARIES})
