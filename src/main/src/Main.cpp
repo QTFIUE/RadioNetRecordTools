@@ -36,14 +36,15 @@ int main(int argc, char* argv[]) {
 // Unhandled Exception的回调函数
 #ifdef WIN32
 
+#include <cstdlib>
+#include <filesystem>
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-
 // 创建Dump文件
 void CreateDumpFile(LPCWSTR lpstrDumpFilePathName, EXCEPTION_POINTERS* pException) {
-    CreateDirectoryW(L"./dump", NULL);
+    std::filesystem::create_directory("./dump");
     HANDLE hDumpFile =
         CreateFileW(lpstrDumpFilePathName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     // Dump信息
@@ -56,21 +57,17 @@ void CreateDumpFile(LPCWSTR lpstrDumpFilePathName, EXCEPTION_POINTERS* pExceptio
     CloseHandle(hDumpFile);
 }
 
-std::wstring String2Wstring(std::string wstr) {
-    std::wstring res;
-    int len = MultiByteToWideChar(CP_ACP, 0, wstr.c_str(), wstr.size(), nullptr, 0);
-    if (len < 0) {
-        return res;
+std::wstring String2Wstring(const std::string& wstr) {
+    if (wstr.empty()) {
+        return std::wstring();
     }
-    wchar_t* buffer = new wchar_t[len + 1];
-    if (buffer == nullptr) {
-        return res;
+    size_t charsNeeded = std::mbstowcs(nullptr, wstr.c_str(), 0);
+    if (charsNeeded == static_cast<size_t>(-1)) {
+        return std::wstring();
     }
-    MultiByteToWideChar(CP_ACP, 0, wstr.c_str(), wstr.size(), buffer, len);
-    buffer[len] = '\0';
-    res.append(buffer);
-    delete[] buffer;
-    return res;
+    std::wstring result(charsNeeded, 0);
+    std::mbstowcs(result.data(), wstr.c_str(), charsNeeded + 1);
+    return result;
 }
 
 // 处理Unhandled Exception的回调函数
